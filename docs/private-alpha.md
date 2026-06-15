@@ -2,6 +2,25 @@
 
 MemeVault private alpha builds are local-first test builds. They are not production-ready.
 
+## Unsigned Alpha Warning
+
+These private alpha builds are unsigned.
+
+Windows may show a SmartScreen warning. Use More info -> Run anyway only if you received the build directly from the maintainer.
+
+macOS may block launch because the app is not notarized. Use right-click -> Open, or System Settings -> Privacy & Security -> Open Anyway.
+
+Do not redistribute these builds.
+
+## Reset Local Alpha Data
+
+1. Quit MemeVault completely.
+2. Open Settings -> Alpha before quitting and copy the Local data directory path.
+3. Delete or rename the MemeVault data directory.
+4. Relaunch the app.
+
+Do not delete original media folders when resetting alpha data. MemeVault references originals outside its local data directory.
+
 ## Package Commands
 
 Run these from a clean checkout after `npm ci`:
@@ -87,4 +106,3 @@ npm run package:mac
    - `duplicate_status`
 5. Confirm `idx_assets_duplicate_status` exists.
 6. Confirm default library/search results hide duplicate assets.
-
