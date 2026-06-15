@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Archive, DatabaseBackup, FolderPlus, RotateCw, Trash2 } from 'lucide-react';
 import { api } from '../lib/api';
-import type { AppSettings, WatchFolder } from '../types/api';
+import type { AlphaInfo, AppSettings, WatchFolder } from '../types/api';
 
 export function SettingsScreen({
   settings,
@@ -11,6 +11,7 @@ export function SettingsScreen({
   onSettingsChange: (settings: AppSettings) => void;
 }): JSX.Element {
   const [local, setLocal] = useState(settings);
+  const [alphaInfo, setAlphaInfo] = useState<AlphaInfo | null>(null);
   const [folders, setFolders] = useState<WatchFolder[]>([]);
   const [message, setMessage] = useState('');
 
@@ -20,6 +21,7 @@ export function SettingsScreen({
 
   useEffect(() => {
     void api.library.listWatchFolders().then(setFolders);
+    void api.settings.getAlphaInfo().then(setAlphaInfo);
   }, []);
 
   async function save(patch: Partial<AppSettings>): Promise<void> {
@@ -43,6 +45,32 @@ export function SettingsScreen({
           <p className="mt-1 text-sm text-textSecondary">MemeVault is local-first. Your files are not uploaded.</p>
           {message ? <p className="mt-2 text-sm text-success">{message}</p> : null}
         </header>
+
+        <section className="mb-6 border-b border-border pb-6">
+          <h2 className="mb-3 text-base font-semibold">Alpha</h2>
+          <div className="grid gap-3 md:grid-cols-2">
+            <label className="block">
+              <span className="mb-1 block text-sm text-textSecondary">Build</span>
+              <input className="input w-full" readOnly value={alphaInfo ? `${alphaInfo.name} ${alphaInfo.version}` : 'MemeVault Alpha'} />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-sm text-textSecondary">Runtime</span>
+              <input className="input w-full" readOnly value={alphaInfo?.packaged ? 'Packaged app' : 'Development'} />
+            </label>
+            <label className="block md:col-span-2">
+              <span className="mb-1 block text-sm text-textSecondary">Local data directory</span>
+              <input className="input w-full" readOnly value={alphaInfo?.dataDir ?? ''} />
+            </label>
+            <label className="block md:col-span-2">
+              <span className="mb-1 block text-sm text-textSecondary">Logs directory</span>
+              <input className="input w-full" readOnly value={alphaInfo?.logsDir ?? ''} />
+            </label>
+          </div>
+          <div className="mt-3 space-y-1 text-sm text-textSecondary">
+            <p>Privacy: media, OCR text, and metadata stay on this PC unless you export or share them.</p>
+            <p className="text-warning">MemeVault Alpha is not production-ready. Keep backups of important files and databases.</p>
+          </div>
+        </section>
 
         <section className="mb-6 border-b border-border pb-6">
           <h2 className="mb-3 text-base font-semibold">General</h2>
@@ -173,4 +201,3 @@ export function SettingsScreen({
     </div>
   );
 }
-

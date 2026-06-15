@@ -1,4 +1,5 @@
 import type {
+  AlphaInfo,
   AppSettings,
   Asset,
   AssetDetail,
@@ -19,6 +20,7 @@ import type {
 export interface MemeVaultApi {
   settings: {
     get(): Promise<AppSettings>;
+    getAlphaInfo(): Promise<AlphaInfo>;
     update(patch: Partial<AppSettings>): Promise<AppSettings>;
     clearCache(): Promise<{ ok: true; jobId: string }>;
     exportBackup(): Promise<{ path: string }>;

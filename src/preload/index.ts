@@ -9,6 +9,7 @@ function invoke<T>(channel: string, payload?: unknown): Promise<T> {
 const api: MemeVaultApi = {
   settings: {
     get: () => invoke('settings:get'),
+    getAlphaInfo: () => invoke('settings:getAlphaInfo'),
     update: (patch) => invoke('settings:update', patch),
     clearCache: () => invoke('settings:clearCache'),
     exportBackup: () => invoke('settings:exportBackup'),

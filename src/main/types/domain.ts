@@ -121,6 +121,14 @@ export interface AppSettings {
   storageLocation: string;
 }
 
+export interface AlphaInfo {
+  name: string;
+  version: string;
+  dataDir: string;
+  logsDir: string;
+  packaged: boolean;
+}
+
 export interface RedactionBox {
   id?: string;
   x: number;

@@ -1,13 +1,21 @@
-import { dialog, ipcMain, shell } from 'electron';
+import { app, dialog, ipcMain, shell } from 'electron';
 import { getSettings, updateSettings } from '../db/repositories/settingsRepo';
 import { clearGeneratedThumbnails, exportBackup, getLogFolder, importBackup } from '../services/backupService';
 import { settingsPatchSchema, importBackupSchema } from './schemas';
 import { restartWatchers } from '../services/folderWatcher';
 import { startClipboardWatcher, stopClipboardWatcher } from '../services/clipboardService';
 import { enqueueJob } from '../services/jobQueue';
+import { getLogsDir, getUserDataRoot } from '../services/appPaths';
 
 export function registerSettingsIpc(onShortcutChanged: () => void): void {
   ipcMain.handle('settings:get', () => getSettings());
+  ipcMain.handle('settings:getAlphaInfo', () => ({
+    name: 'MemeVault Alpha',
+    version: app.getVersion(),
+    dataDir: getUserDataRoot(),
+    logsDir: getLogsDir(),
+    packaged: app.isPackaged
+  }));
   ipcMain.handle('settings:update', (_event, payload) => {
     const settings = updateSettings(settingsPatchSchema.parse(payload));
     onShortcutChanged();
@@ -38,4 +46,3 @@ export function registerSettingsIpc(onShortcutChanged: () => void): void {
     return { ok: true };
   });
 }
-

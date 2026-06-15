@@ -1,4 +1,5 @@
 export type {
+  AlphaInfo,
   AppSettings,
   Asset,
   AssetDetail,
@@ -15,4 +16,3 @@ export type {
   Tag,
   WatchFolder
 } from '../../main/types/domain';
-
