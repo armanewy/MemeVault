@@ -1,0 +1,103 @@
+{
+  "createdAt": "2026-06-15T14:03:10.614Z",
+  "purpose": "MemeVault QA media scattered across C and D drives for detection/import testing.",
+  "roots": [
+    "C:\\MemeVault-QA-Media-20260615T140308",
+    "D:\\MemeVault-QA-Media-20260615T140308"
+  ],
+  "manifestPath": "C:\\Users\\aoztu\\Documents\\MemeVault Desktop Suite\\memevault-qa-media-manifest-20260615T140308.json",
+  "cleanupPowerShell": [
+    "Remove-Item -LiteralPath 'C:\\MemeVault-QA-Media-20260615T140308' -Recurse -Force",
+    "Remove-Item -LiteralPath 'D:\\MemeVault-QA-Media-20260615T140308' -Recurse -Force"
+  ],
+  "entries": [
+    {
+      "path": "C:\\MemeVault-QA-Media-20260615T140308\\Inbox Memes\\reaction-images\\when-tests-pass.png",
+      "drive": "C:",
+      "kind": "image",
+      "ext": ".png",
+      "source": "https://upload.wikimedia.org/wikipedia/commons/7/70/Example.png",
+      "sha256": "75cae27c807a76b7d0f7201f75f1c9133b41cc3ee5013e9d5484534c31588e3f"
+    },
+    {
+      "path": "C:\\MemeVault-QA-Media-20260615T140308\\Inbox Memes\\reaction-images\\finally-searchable.jpg",
+      "drive": "C:",
+      "kind": "image",
+      "ext": ".jpg",
+      "source": "https://upload.wikimedia.org/wikipedia/commons/9/9a/Gull_portrait_ca_usa.jpg",
+      "sha256": "912db417705df2684c93a4b2dc7bbb0d5bffe30056b1333fc6f41df511eefe9f"
+    },
+    {
+      "path": "C:\\MemeVault-QA-Media-20260615T140308\\Inbox Memes\\nested\\deep\\same-but-jpeg-extension.jpeg",
+      "drive": "C:",
+      "kind": "image",
+      "ext": ".jpeg",
+      "source": "https://upload.wikimedia.org/wikipedia/commons/9/9a/Gull_portrait_ca_usa.jpg",
+      "sha256": "8b33654c24d6d10862b5d7bba8873cf7deee3739cac42e0f88318200b1aab252"
+    },
+    {
+      "path": "C:\\MemeVault-QA-Media-20260615T140308\\Screenshots\\receipts\\redaction-ocr-email-phone.png",
+      "drive": "C:",
+      "kind": "image",
+      "ext": ".png",
+      "source": "generated local OCR screenshot fixture",
+      "sha256": "68d540b8720bf17b4499fbc216132fadef4367083248bfffab9886b575b7ba78"
+    },
+    {
+      "path": "C:\\MemeVault-QA-Media-20260615T140308\\Screenshots\\receipts\\redaction-ocr-email-phone-copy.webp",
+      "drive": "C:",
+      "kind": "image",
+      "ext": ".webp",
+      "source": "generated local OCR screenshot fixture converted to webp",
+      "sha256": "dd715e101bec7ed7b45db46015f20308ff00969c5db34877f706ba36bd60650c"
+    },
+    {
+      "path": "D:\\MemeVault-QA-Media-20260615T140308\\Discord Saves\\webp\\ship-it-reaction.webp",
+      "drive": "D:",
+      "kind": "image",
+      "ext": ".webp",
+      "source": "https://www.gstatic.com/webp/gallery/1.webp",
+      "sha256": "ec6d5637f9fa2cecd720f754641c89e2829de3c45b9c20fd86d084e32ccee3ae"
+    },
+    {
+      "path": "D:\\MemeVault-QA-Media-20260615T140308\\Discord Saves\\gifs\\spinning-earth-reaction.gif",
+      "drive": "D:",
+      "kind": "gif",
+      "ext": ".gif",
+      "source": "https://upload.wikimedia.org/wikipedia/commons/2/2c/Rotating_earth_%28large%29.gif",
+      "sha256": "b0acdc9a01f91f6123dbff38d4bee59d0d6e4b26071b5c83937b242b6b202378"
+    },
+    {
+      "path": "D:\\MemeVault-QA-Media-20260615T140308\\Clips\\mp4\\flower-loop-meme.mp4",
+      "drive": "D:",
+      "kind": "video",
+      "ext": ".mp4",
+      "source": "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4",
+      "sha256": "0cd83d944a6ca7822b4a8306cecc60a36e859b041f6702c6a1ad9ead78924451"
+    },
+    {
+      "path": "D:\\MemeVault-QA-Media-20260615T140308\\Clips\\webm\\flower-loop-meme.webm",
+      "drive": "D:",
+      "kind": "video",
+      "ext": ".webm",
+      "source": "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm",
+      "sha256": "c6f8a348953395598a9a73b9bab1676436410797bce9f398f4be1531d6e76dda"
+    },
+    {
+      "path": "D:\\MemeVault-QA-Media-20260615T140308\\Clips\\mov\\flower-loop-meme.mov",
+      "drive": "D:",
+      "kind": "video",
+      "ext": ".mov",
+      "source": "converted locally from downloaded MDN MP4 fixture",
+      "sha256": "43ebe442a0c1188d7c0889d66069dc7ad14c29c617b729ca92b3abe14cd82d04"
+    },
+    {
+      "path": "D:\\MemeVault-QA-Media-20260615T140308\\Clips\\nested\\extra-copy-for-recursive-scan.png",
+      "drive": "D:",
+      "kind": "image",
+      "ext": ".png",
+      "source": "https://upload.wikimedia.org/wikipedia/commons/7/70/Example.png",
+      "sha256": "09b12238f69faa63d18268e165615297651f6479a3f6ae02ffad73b21e73fbcd"
+    }
+  ]
+}
