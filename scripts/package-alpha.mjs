@@ -1,7 +1,10 @@
 import { spawnSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 
 const target = process.argv[2];
 const builderArg = target === 'win' ? '--win' : target === 'mac' ? '--mac' : undefined;
+const electronVersion = JSON.parse(readFileSync(new URL('../node_modules/electron/package.json', import.meta.url), 'utf8')).version;
+const arch = process.env.npm_config_arch || process.arch;
 
 if (!builderArg) {
   console.error('Usage: node scripts/package-alpha.mjs <win|mac>');
@@ -24,7 +27,8 @@ let exitCode = 0;
 
 try {
   run('npm', ['run', 'build']);
-  run('npx', ['electron-builder', builderArg, '--publish', 'never']);
+  run('npx', ['electron-rebuild', '-f', '-w', 'better-sqlite3', '-v', electronVersion, '--arch', arch]);
+  run('npx', ['electron-builder', builderArg, '--publish', 'never', '--config.npmRebuild=false']);
 } catch (error) {
   exitCode = typeof error.status === 'number' ? error.status : 1;
 } finally {
