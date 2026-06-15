@@ -28,6 +28,8 @@ npm run test
 npm run build
 ```
 
+The CI matrix runs these commands on Ubuntu, Windows, and macOS. Packaging smoke steps are not enabled yet; `package:win` and `package:mac` remain a documented next step after native dependency packaging is verified per platform.
+
 ## Supported Files
 
 Images: PNG, JPG, JPEG, WEBP  
@@ -49,9 +51,11 @@ The current build is focused on the core loop:
 5. Press `Enter` to copy image assets.
 6. Press `Shift+Enter` to hide the palette, wait briefly, and attempt paste into the previously focused app.
 
-Search supports filename, OCR text, tags, collections, `kind:image`, `kind:gif`, `kind:video`, `tag:<name>`, and `fav:true`.
+Search supports filename, OCR text, tags, collections, `kind:image`, `kind:gif`, `kind:video`, `tag:<name>`, `fav:true`, and `duplicates:true`.
 
 GIF and video clipboard behavior is explicit in this MVP: MemeVault copies the file path and shows a clear message. GIFs are not silently flattened to still images.
+
+Exact-hash duplicates are marked after background hashing and hidden from default results. Use `duplicates:true` to include them in search.
 
 ## QA Media
 

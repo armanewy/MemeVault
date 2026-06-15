@@ -1,5 +1,18 @@
 import type Database from 'better-sqlite3';
 
+function columnExists(db: Database.Database, table: string, column: string): boolean {
+  return db
+    .prepare(`PRAGMA table_info(${table})`)
+    .all()
+    .some((row) => (row as { name?: string }).name === column);
+}
+
+function addColumnIfMissing(db: Database.Database, table: string, column: string, definition: string): void {
+  if (!columnExists(db, table, column)) {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  }
+}
+
 export function runMigrations(db: Database.Database): void {
   db.exec(`
     PRAGMA foreign_keys = ON;
@@ -29,6 +42,8 @@ export function runMigrations(db: Database.Database): void {
       file_created_at TEXT,
       file_modified_at TEXT,
       missing INTEGER NOT NULL DEFAULT 0,
+      duplicate_of_asset_id TEXT REFERENCES assets(id),
+      duplicate_status TEXT NOT NULL DEFAULT 'unique' CHECK(duplicate_status IN ('unique', 'duplicate')),
       deleted_at TEXT
     );
 
@@ -126,9 +141,18 @@ export function runMigrations(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_assets_last_used_at ON assets(last_used_at);
     CREATE INDEX IF NOT EXISTS idx_assets_sha256 ON assets(sha256);
     CREATE INDEX IF NOT EXISTS idx_assets_phash ON assets(phash);
+    CREATE INDEX IF NOT EXISTS idx_assets_duplicate_status ON assets(duplicate_status);
     CREATE INDEX IF NOT EXISTS idx_ocr_blocks_asset ON ocr_blocks(asset_id);
     CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status);
     CREATE INDEX IF NOT EXISTS idx_jobs_asset ON jobs(asset_id);
   `);
-}
 
+  addColumnIfMissing(db, 'assets', 'duplicate_of_asset_id', 'TEXT REFERENCES assets(id)');
+  addColumnIfMissing(
+    db,
+    'assets',
+    'duplicate_status',
+    "TEXT NOT NULL DEFAULT 'unique' CHECK(duplicate_status IN ('unique', 'duplicate'))"
+  );
+  db.exec('CREATE INDEX IF NOT EXISTS idx_assets_duplicate_status ON assets(duplicate_status);');
+}

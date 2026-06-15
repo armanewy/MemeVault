@@ -4,9 +4,9 @@ import type { Asset, ImportResult } from '../types/domain';
 import {
   createAsset,
   findByNormalizedPath,
-  findBySha256,
   getAssetOrThrow,
   listAssets,
+  reconcileDuplicatesForSha,
   updateAsset
 } from '../db/repositories/assetRepo';
 import { addTagToAsset } from '../db/repositories/tagRepo';
@@ -116,16 +116,17 @@ export function registerAssetJobHandlers(): void {
   registerJobHandler('hash_asset', async (input) => {
     const asset = getAssetOrThrow(String(input.assetId));
     const sha256 = await sha256File(asset.originalPath);
-    const existing = findBySha256(sha256);
-    if (existing && existing.id !== asset.id) {
+    updateAsset(asset.id, { sha256 });
+    const duplicateGroup = reconcileDuplicatesForSha(sha256);
+    if (duplicateGroup && duplicateGroup.duplicateIds.includes(asset.id)) {
       logger.info('Exact duplicate detected after import.', {
         assetId: asset.id,
-        duplicateOf: existing.id,
+        duplicateOf: duplicateGroup.canonicalId,
         sha256
       });
+      return { sha256, duplicateOf: duplicateGroup.canonicalId };
     }
-    updateAsset(asset.id, { sha256 });
-    return { sha256, duplicateOf: existing && existing.id !== asset.id ? existing.id : undefined };
+    return { sha256 };
   });
 
   registerJobHandler('probe_media', async (input) => {

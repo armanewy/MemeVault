@@ -27,8 +27,8 @@ export function createMainWindow(): BrowserWindow {
     }
   });
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    if (url.startsWith('file:')) return { action: 'allow' };
-    void shell.openExternal(url);
+    if (url.startsWith('file:')) return { action: 'deny' };
+    if (url.startsWith('https:') || url.startsWith('http:')) void shell.openExternal(url);
     return { action: 'deny' };
   });
   mainWindow.on('closed', () => {

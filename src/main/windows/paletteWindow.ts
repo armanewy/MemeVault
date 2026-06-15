@@ -29,7 +29,7 @@ export function createPaletteWindow(): BrowserWindow {
     }
   });
   paletteWindow.webContents.setWindowOpenHandler(({ url }) => {
-    void shell.openExternal(url);
+    if (url.startsWith('https:') || url.startsWith('http:')) void shell.openExternal(url);
     return { action: 'deny' };
   });
   paletteWindow.on('blur', () => {

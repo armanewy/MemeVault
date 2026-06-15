@@ -1,6 +1,6 @@
 import { pathToFileURL } from 'node:url';
 import { randomUUID } from 'node:crypto';
-import type { Asset, AssetDetail, AssetKind, Collection, OcrBlock, Tag } from '../../types/domain';
+import type { Asset, AssetDetail, AssetKind, Collection, DuplicateStatus, OcrBlock, Tag } from '../../types/domain';
 import { getDb } from '../db';
 import { hammingDistance } from '../../services/perceptualHash';
 
@@ -47,6 +47,8 @@ export function rowToAsset(row: AssetRow, tags: Tag[] = [], collections: Collect
     fileCreatedAt: asOptionalString(row.file_created_at),
     fileModifiedAt: asOptionalString(row.file_modified_at),
     missing: Number(row.missing ?? 0) === 1,
+    duplicateOfAssetId: asOptionalString(row.duplicate_of_asset_id),
+    duplicateStatus: (asOptionalString(row.duplicate_status) ?? 'unique') as DuplicateStatus,
     tags,
     collections
   };
@@ -137,7 +139,12 @@ export function findByNormalizedPath(normalizedPath: string): Asset | undefined 
 
 export function findBySha256(sha256: string): Asset | undefined {
   const row = getDb()
-    .prepare('SELECT * FROM assets WHERE sha256 = ? AND deleted_at IS NULL LIMIT 1')
+    .prepare(
+      `SELECT * FROM assets
+       WHERE sha256 = ? AND deleted_at IS NULL AND duplicate_status != 'duplicate'
+       ORDER BY imported_at ASC
+       LIMIT 1`
+    )
     .get(sha256) as AssetRow | undefined;
   return row ? rowToAsset(row, listTagsForAsset(String(row.id)), listCollectionsForAsset(String(row.id))) : undefined;
 }
@@ -160,6 +167,8 @@ export function updateAsset(id: string, patch: Partial<{
   ocrText: string;
   favorite: boolean;
   missing: boolean;
+  duplicateOfAssetId: string | null;
+  duplicateStatus: DuplicateStatus;
 }>): Asset {
   const fields: string[] = [];
   const values: unknown[] = [];
@@ -173,7 +182,9 @@ export function updateAsset(id: string, patch: Partial<{
     previewPath: 'preview_path',
     ocrText: 'ocr_text',
     favorite: 'favorite',
-    missing: 'missing'
+    missing: 'missing',
+    duplicateOfAssetId: 'duplicate_of_asset_id',
+    duplicateStatus: 'duplicate_status'
   };
   for (const [key, value] of Object.entries(patch)) {
     if (value === undefined) continue;
@@ -187,6 +198,38 @@ export function updateAsset(id: string, patch: Partial<{
     updateFtsForAsset(id);
   }
   return getAssetOrThrow(id);
+}
+
+export function markDuplicate(assetId: string, duplicateOfAssetId: string): Asset {
+  return updateAsset(assetId, {
+    duplicateStatus: 'duplicate',
+    duplicateOfAssetId
+  });
+}
+
+export function reconcileDuplicatesForSha(sha256: string): { canonicalId: string; duplicateIds: string[] } | undefined {
+  const rows = getDb()
+    .prepare(
+      `SELECT id FROM assets
+       WHERE sha256 = ? AND deleted_at IS NULL
+       ORDER BY imported_at ASC, rowid ASC`
+    )
+    .all(sha256) as Array<{ id: string }>;
+  if (!rows.length) return undefined;
+  const [canonical, ...duplicates] = rows;
+  const now = iso();
+  getDb().transaction(() => {
+    getDb()
+      .prepare("UPDATE assets SET duplicate_status = 'unique', duplicate_of_asset_id = NULL, updated_at = ? WHERE id = ?")
+      .run(now, canonical.id);
+    const stmt = getDb().prepare(
+      "UPDATE assets SET duplicate_status = 'duplicate', duplicate_of_asset_id = ?, updated_at = ? WHERE id = ?"
+    );
+    for (const duplicate of duplicates) {
+      stmt.run(canonical.id, now, duplicate.id);
+    }
+  })();
+  return { canonicalId: canonical.id, duplicateIds: duplicates.map((row) => row.id) };
 }
 
 export function toggleFavorite(id: string): Asset {
@@ -328,4 +371,3 @@ export function getSimilarAssets(assetId: string, limit = 8): Asset[] {
     .slice(0, limit)
     .map((item) => item.asset);
 }
-

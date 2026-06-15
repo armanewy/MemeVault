@@ -57,6 +57,11 @@ export function AssetDetailDrawer({
           )}
         </div>
         <h2 className="mt-4 break-words text-lg font-semibold">{current.filename}</h2>
+        {current.duplicateStatus === 'duplicate' ? (
+          <div className="mt-3 rounded-md border border-warning/60 bg-warning/10 p-3 text-sm text-warning">
+            Duplicate asset{current.duplicateOfAssetId ? ` of ${current.duplicateOfAssetId.slice(0, 8)}` : ''}.
+          </div>
+        ) : null}
         <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-textSecondary">
           <span>{current.kind.toUpperCase()}</span>
           <span>{formatBytes(current.fileSize)}</span>
@@ -142,4 +147,3 @@ export function AssetDetailDrawer({
     </aside>
   );
 }
-

@@ -26,6 +26,7 @@ export const searchSchema = z.object({
   tags: z.array(z.string()).optional(),
   collectionId: z.string().optional(),
   favoritesOnly: z.boolean().optional(),
+  duplicates: z.boolean().optional(),
   limit: z.number().int().positive().max(500).optional(),
   offset: z.number().int().nonnegative().optional(),
   sort: z.enum(['relevance', 'recent', 'used']).optional()

@@ -8,6 +8,7 @@ type ParsedSearchSyntax = {
   kind?: SearchQuery['kind'];
   tags: string[];
   favoritesOnly?: boolean;
+  duplicates?: boolean;
 };
 
 function tokensForQuery(query: string): string[] {
@@ -55,6 +56,7 @@ function parseSearchSyntax(q: string): ParsedSearchSyntax {
   const tags: string[] = [];
   let kind: SearchQuery['kind'] | undefined;
   let favoritesOnly: boolean | undefined;
+  let duplicates: boolean | undefined;
 
   next = next.replace(/\bkind:(image|gif|video|screenshot)\b/gi, (_match, value: string) => {
     kind = value.toLowerCase() === 'screenshot' ? 'image' : (value.toLowerCase() as SearchQuery['kind']);
@@ -63,6 +65,11 @@ function parseSearchSyntax(q: string): ParsedSearchSyntax {
 
   next = next.replace(/\bfav:(true|false)\b/gi, (_match, value: string) => {
     favoritesOnly = value.toLowerCase() === 'true';
+    return ' ';
+  });
+
+  next = next.replace(/\bduplicates:(true|false)\b/gi, (_match, value: string) => {
+    duplicates = value.toLowerCase() === 'true';
     return ' ';
   });
 
@@ -75,7 +82,8 @@ function parseSearchSyntax(q: string): ParsedSearchSyntax {
     q: next.replace(/\s+/g, ' ').trim(),
     kind,
     tags: tags.filter(Boolean),
-    favoritesOnly
+    favoritesOnly,
+    duplicates
   };
 }
 
@@ -94,6 +102,10 @@ function toFtsQuery(q: string): string | undefined {
   return tokens.map((token) => `"${token.replace(/"/g, '""')}"*`).join(' AND ');
 }
 
+function escapeLike(value: string): string {
+  return value.replace(/[\\%_]/g, (char) => `\\${char}`);
+}
+
 export function searchAssets(query: SearchQuery): SearchResult[] {
   const parsed = parseSearchSyntax(query.q ?? '');
   const q = parsed.q;
@@ -101,6 +113,7 @@ export function searchAssets(query: SearchQuery): SearchResult[] {
   const kind = query.kind && query.kind !== 'all' ? query.kind : parsed.kind;
   const tags = [...(query.tags ?? []), ...parsed.tags];
   const favoritesOnly = query.favoritesOnly ?? parsed.favoritesOnly;
+  const includeDuplicates = query.duplicates ?? parsed.duplicates ?? false;
   const clauses = ['a.deleted_at IS NULL'];
   const params: unknown[] = [];
   const joins: string[] = [];
@@ -108,7 +121,25 @@ export function searchAssets(query: SearchQuery): SearchResult[] {
     joins.push('INNER JOIN asset_fts ON asset_fts.asset_id = a.id');
     clauses.push('asset_fts MATCH ?');
     params.push(ftsQuery);
+  } else if (q) {
+    const pattern = `%${escapeLike(q.toLowerCase())}%`;
+    clauses.push(
+      `(lower(a.filename) LIKE ? ESCAPE '\\'
+        OR lower(COALESCE(a.ocr_text, '')) LIKE ? ESCAPE '\\'
+        OR EXISTS (
+          SELECT 1 FROM asset_tags raw_at
+          INNER JOIN tags raw_t ON raw_t.id = raw_at.tag_id
+          WHERE raw_at.asset_id = a.id AND lower(raw_t.name) LIKE ? ESCAPE '\\'
+        )
+        OR EXISTS (
+          SELECT 1 FROM collection_assets raw_ca
+          INNER JOIN collections raw_c ON raw_c.id = raw_ca.collection_id
+          WHERE raw_ca.asset_id = a.id AND lower(raw_c.name) LIKE ? ESCAPE '\\'
+        ))`
+    );
+    params.push(pattern, pattern, pattern, pattern);
   }
+  if (!includeDuplicates) clauses.push("a.duplicate_status != 'duplicate'");
   if (kind && kind !== 'all') {
     clauses.push('a.kind = ?');
     params.push(kind);

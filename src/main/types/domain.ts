@@ -1,5 +1,6 @@
 export type AssetKind = 'image' | 'gif' | 'video';
 export type JobStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled';
+export type DuplicateStatus = 'unique' | 'duplicate';
 export type RedactionStyle = 'black' | 'pixelate' | 'blur';
 export type ExportPreset = 'original' | 'square' | 'vertical' | 'horizontal' | 'discord';
 
@@ -46,6 +47,8 @@ export interface Asset {
   fileCreatedAt?: string;
   fileModifiedAt?: string;
   missing: boolean;
+  duplicateOfAssetId?: string;
+  duplicateStatus: DuplicateStatus;
   tags: Tag[];
   collections?: Collection[];
 }
@@ -68,6 +71,7 @@ export interface SearchQuery {
   tags?: string[];
   collectionId?: string;
   favoritesOnly?: boolean;
+  duplicates?: boolean;
   limit?: number;
   offset?: number;
   sort?: 'relevance' | 'recent' | 'used';
