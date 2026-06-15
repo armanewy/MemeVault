@@ -31,12 +31,24 @@ export function PaletteApp(): JSX.Element {
     return () => clearTimeout(handle);
   }, [query, search]);
 
+  function wait(ms: number): Promise<void> {
+    return new Promise((resolve) => window.setTimeout(resolve, ms));
+  }
+
   async function copy(autoPaste: boolean): Promise<void> {
     const asset = results[selected]?.asset;
     if (!asset) return;
-    const result = autoPaste ? await api.assets.autoPaste({ id: asset.id }) : await api.assets.copyToClipboard({ id: asset.id });
+    const result = await api.assets.copyToClipboard({ id: asset.id });
     setMessage(result.message);
-    if (result.ok) setTimeout(() => void api.window.hidePalette(), 350);
+    if (!result.ok) return;
+    if (!autoPaste) {
+      setTimeout(() => void api.window.hidePalette(), 350);
+      return;
+    }
+    await api.window.hidePalette();
+    await wait(180);
+    const paste = await api.assets.attemptPaste();
+    setMessage(paste.message);
   }
 
   async function openAsset(): Promise<void> {
@@ -111,4 +123,3 @@ export function PaletteApp(): JSX.Element {
     </div>
   );
 }
-

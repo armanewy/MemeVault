@@ -31,6 +31,7 @@ const api: MemeVaultApi = {
     removeTag: (input) => invoke('assets:removeTag', input),
     copyToClipboard: (input) => invoke('assets:copyToClipboard', input),
     autoPaste: (input) => invoke('assets:autoPaste', input),
+    attemptPaste: () => invoke('assets:attemptPaste'),
     revealInFileManager: (input) => invoke('assets:revealInFileManager', input),
     removeFromVault: (input) => invoke('assets:removeFromVault', input),
     rerunOcr: (input) => invoke('assets:rerunOcr', input),
@@ -86,4 +87,3 @@ const api: MemeVaultApi = {
 };
 
 contextBridge.exposeInMainWorld('memevault', api);
-

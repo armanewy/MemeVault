@@ -15,33 +15,42 @@ let lastClipboardHash = '';
 
 export async function copyAssetToClipboard(assetId: string): Promise<ClipboardResult> {
   const asset = getAssetOrThrow(assetId);
+  if (asset.kind === 'gif') {
+    clipboard.writeText(asset.originalPath);
+    incrementUse(asset.id);
+    return { ok: true, message: 'Copied GIF file path. GIFs are not flattened to still images.' };
+  }
   if (asset.kind === 'video') {
     clipboard.writeText(asset.originalPath);
     incrementUse(asset.id);
-    return { ok: true, message: 'Copied. Press Cmd+V to paste.' };
+    return { ok: true, message: 'Copied video file path.' };
   }
   const image = nativeImage.createFromPath(asset.originalPath);
   if (image.isEmpty()) {
     clipboard.writeText(asset.originalPath);
     incrementUse(asset.id);
-    return { ok: true, message: 'Copied file path.' };
+    return { ok: true, message: 'Copied image file path because the image could not be read.' };
   }
   clipboard.write({ image });
   incrementUse(asset.id);
   return { ok: true, message: 'Copied.' };
 }
 
-export async function autoPasteAsset(assetId: string): Promise<ClipboardResult> {
-  const copy = await copyAssetToClipboard(assetId);
-  const settings = getSettings();
-  if (!settings.autoPasteEnabled) return copy;
+export async function attemptClipboardPaste(): Promise<ClipboardResult> {
   const paste = await attemptPaste();
   if (paste.ok) return { ok: true, message: 'Copied.' };
   return {
     ok: true,
-    message: paste.needsPermission ? 'Copied, but auto-paste needs Accessibility permission.' : 'Copied. Press Cmd+V to paste.',
+    message: 'Copied — press Cmd/Ctrl+V',
     needsPermission: paste.needsPermission
   };
+}
+
+export async function autoPasteAsset(assetId: string): Promise<ClipboardResult> {
+  const copy = await copyAssetToClipboard(assetId);
+  const settings = getSettings();
+  if (!settings.autoPasteEnabled) return copy;
+  return attemptClipboardPaste();
 }
 
 export async function captureClipboardImageIfNew(): Promise<void> {
@@ -73,4 +82,3 @@ export function stopClipboardWatcher(): void {
   if (clipboardTimer) clearInterval(clipboardTimer);
   clipboardTimer = undefined;
 }
-

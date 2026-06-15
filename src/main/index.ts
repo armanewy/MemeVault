@@ -1,6 +1,6 @@
-import { app, BrowserWindow, globalShortcut, powerSaveBlocker } from 'electron';
+import { app, BrowserWindow, globalShortcut } from 'electron';
 import { createMainWindow, getMainWindow } from './windows/mainWindow';
-import { createPaletteWindow, getPaletteWindow, showPaletteWindow } from './windows/paletteWindow';
+import { createPaletteWindow, showPaletteWindow } from './windows/paletteWindow';
 import { ensureAppDirs } from './services/appPaths';
 import { initializeDatabase, closeDatabase } from './db/db';
 import { getSettings } from './db/repositories/settingsRepo';
@@ -10,8 +10,6 @@ import { startAllWatchers, stopAllWatchers } from './services/folderWatcher';
 import { jobEvents } from './services/jobQueue';
 import { startClipboardWatcher, stopClipboardWatcher } from './services/clipboardService';
 import { logger } from './services/logger';
-
-let powerBlockId: number | undefined;
 
 function broadcast(channel: string, payload: unknown): void {
   for (const win of BrowserWindow.getAllWindows()) {
@@ -43,7 +41,6 @@ app.whenReady().then(() => {
   registerShortcut();
   startAllWatchers();
   if (getSettings().clipboardWatcherEnabled) startClipboardWatcher();
-  powerBlockId = powerSaveBlocker.start('prevent-app-suspension');
   jobEvents.on('update', (job) => broadcast('jobs:update', job));
 
   app.on('activate', () => {
@@ -55,11 +52,9 @@ app.on('will-quit', () => {
   globalShortcut.unregisterAll();
   stopAllWatchers();
   stopClipboardWatcher();
-  if (powerBlockId !== undefined) powerSaveBlocker.stop(powerBlockId);
   closeDatabase();
 });
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
-

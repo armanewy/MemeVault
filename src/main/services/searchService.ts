@@ -3,6 +3,12 @@ import { getDb } from '../db/db';
 import { listCollectionsForAsset, listTagsForAsset, rowToAsset } from '../db/repositories/assetRepo';
 
 type AssetRow = Record<string, unknown>;
+type ParsedSearchSyntax = {
+  q: string;
+  kind?: SearchQuery['kind'];
+  tags: string[];
+  favoritesOnly?: boolean;
+};
 
 function tokensForQuery(query: string): string[] {
   return query
@@ -44,30 +50,76 @@ export function rankAssetForQuery(asset: Asset, rawQuery: string): { score: numb
   return { score, matchedFields: [...matched] };
 }
 
-function parseKindFromText(q: string): { q: string; kind?: SearchQuery['kind'] } {
-  const match = /\bkind:(image|gif|video|screenshot)\b/i.exec(q);
-  if (!match) return { q };
-  const kind = match[1].toLowerCase() === 'screenshot' ? 'image' : (match[1].toLowerCase() as SearchQuery['kind']);
-  return { q: q.replace(match[0], '').trim(), kind };
+function parseSearchSyntax(q: string): ParsedSearchSyntax {
+  let next = q;
+  const tags: string[] = [];
+  let kind: SearchQuery['kind'] | undefined;
+  let favoritesOnly: boolean | undefined;
+
+  next = next.replace(/\bkind:(image|gif|video|screenshot)\b/gi, (_match, value: string) => {
+    kind = value.toLowerCase() === 'screenshot' ? 'image' : (value.toLowerCase() as SearchQuery['kind']);
+    return ' ';
+  });
+
+  next = next.replace(/\bfav:(true|false)\b/gi, (_match, value: string) => {
+    favoritesOnly = value.toLowerCase() === 'true';
+    return ' ';
+  });
+
+  next = next.replace(/\btag:("[^"]+"|'[^']+'|\S+)/gi, (_match, value: string) => {
+    tags.push(value.replace(/^['"]|['"]$/g, '').trim());
+    return ' ';
+  });
+
+  return {
+    q: next.replace(/\s+/g, ' ').trim(),
+    kind,
+    tags: tags.filter(Boolean),
+    favoritesOnly
+  };
+}
+
+function ftsTokens(q: string): string[] {
+  return q
+    .toLowerCase()
+    .replace(/["']/g, ' ')
+    .split(/[^\p{L}\p{N}_]+/u)
+    .map((token) => token.trim())
+    .filter(Boolean);
+}
+
+function toFtsQuery(q: string): string | undefined {
+  const tokens = ftsTokens(q);
+  if (!tokens.length) return undefined;
+  return tokens.map((token) => `"${token.replace(/"/g, '""')}"*`).join(' AND ');
 }
 
 export function searchAssets(query: SearchQuery): SearchResult[] {
-  const parsed = parseKindFromText(query.q ?? '');
+  const parsed = parseSearchSyntax(query.q ?? '');
   const q = parsed.q;
+  const ftsQuery = toFtsQuery(q);
   const kind = query.kind && query.kind !== 'all' ? query.kind : parsed.kind;
+  const tags = [...(query.tags ?? []), ...parsed.tags];
+  const favoritesOnly = query.favoritesOnly ?? parsed.favoritesOnly;
   const clauses = ['a.deleted_at IS NULL'];
   const params: unknown[] = [];
+  const joins: string[] = [];
+  if (ftsQuery) {
+    joins.push('INNER JOIN asset_fts ON asset_fts.asset_id = a.id');
+    clauses.push('asset_fts MATCH ?');
+    params.push(ftsQuery);
+  }
   if (kind && kind !== 'all') {
     clauses.push('a.kind = ?');
     params.push(kind);
   }
-  if (query.favoritesOnly) clauses.push('a.favorite = 1');
+  if (favoritesOnly) clauses.push('a.favorite = 1');
   if (query.collectionId) {
     clauses.push('EXISTS (SELECT 1 FROM collection_assets ca WHERE ca.asset_id = a.id AND ca.collection_id = ?)');
     params.push(query.collectionId);
   }
-  if (query.tags?.length) {
-    for (const tag of query.tags) {
+  if (tags.length) {
+    for (const tag of tags) {
       clauses.push(
         `EXISTS (
           SELECT 1 FROM asset_tags at
@@ -78,26 +130,29 @@ export function searchAssets(query: SearchQuery): SearchResult[] {
       params.push(tag);
     }
   }
+  const offset = query.offset ?? 0;
+  const limit = query.limit ?? 80;
+  const orderBy =
+    query.sort === 'recent'
+      ? 'a.imported_at DESC'
+      : query.sort === 'used'
+        ? 'COALESCE(a.last_used_at, a.imported_at) DESC'
+        : ftsQuery
+          ? 'bm25(asset_fts, 6.0, 2.0, 5.0, 3.0), COALESCE(a.last_used_at, a.imported_at) DESC'
+          : 'COALESCE(a.last_used_at, a.imported_at) DESC';
+
   const rows = getDb()
     .prepare(
       `SELECT a.* FROM assets a
+       ${joins.join(' ')}
        WHERE ${clauses.join(' AND ')}
-       ORDER BY COALESCE(a.last_used_at, a.imported_at) DESC
-       LIMIT 1000`
+       ORDER BY ${orderBy}
+       LIMIT ? OFFSET ?`
     )
-    .all(...params) as AssetRow[];
+    .all(...params, limit, offset) as AssetRow[];
   const results = rows
     .map((row) => rowToAsset(row, listTagsForAsset(String(row.id)), listCollectionsForAsset(String(row.id))))
-    .map((asset) => ({ asset, ...rankAssetForQuery(asset, q) }))
-    .filter((result) => !tokensForQuery(q).length || result.score > 0);
-  const sorted =
-    query.sort === 'recent'
-      ? results.sort((a, b) => b.asset.importedAt.localeCompare(a.asset.importedAt))
-      : query.sort === 'used'
-        ? results.sort((a, b) => (b.asset.lastUsedAt ?? '').localeCompare(a.asset.lastUsedAt ?? ''))
-        : results.sort((a, b) => b.score - a.score || b.asset.importedAt.localeCompare(a.asset.importedAt));
-  const offset = query.offset ?? 0;
-  const limit = query.limit ?? 80;
-  return sorted.slice(offset, offset + limit);
+    .map((asset) => ({ asset, ...rankAssetForQuery(asset, q || tags.join(' ')) }));
+  if (query.sort === 'recent' || query.sort === 'used' || ftsQuery) return results;
+  return results.sort((a, b) => b.score - a.score || b.asset.importedAt.localeCompare(a.asset.importedAt));
 }
-

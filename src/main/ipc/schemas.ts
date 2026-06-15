@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 export const idSchema = z.object({ id: z.string().min(1) });
+export const getManySchema = z.object({ ids: z.array(z.string().min(1)).max(500) });
 
 export const settingsPatchSchema = z
   .object({
@@ -82,4 +83,3 @@ export const exportVideoClipSchema = z.object({
 });
 
 export const importBackupSchema = z.object({ path: z.string().min(1) }).optional();
-

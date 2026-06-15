@@ -29,6 +29,7 @@ export interface ImportSummary {
 
 export function enqueueProcessing(asset: Asset): string[] {
   const jobIds = [
+    enqueueJob('hash_asset', { assetId: asset.id }, asset.id).id,
     enqueueJob('probe_media', { assetId: asset.id }, asset.id).id,
     enqueueJob('generate_thumbnail', { assetId: asset.id }, asset.id).id
   ];
@@ -48,9 +49,6 @@ export async function importFile(
   if (existingPath) return { asset: existingPath, skipped: true, jobIds: [] };
   const info = await stat(normalizedPath);
   if (!info.isFile()) return { skipped: true, jobIds: [] };
-  const sha256 = await sha256File(normalizedPath);
-  const existingHash = findBySha256(sha256);
-  if (existingHash) return { asset: existingHash, skipped: true, jobIds: [] };
   const asset = createAsset({
     originalPath: normalizedPath,
     normalizedPath,
@@ -62,8 +60,7 @@ export async function importFile(
     fileCreatedAt: info.birthtime?.toISOString(),
     fileModifiedAt: info.mtime?.toISOString(),
     sourceType,
-    sourceDetail,
-    sha256
+    sourceDetail
   });
   return { asset, skipped: false, jobIds: enqueueProcessing(asset) };
 }
@@ -114,6 +111,21 @@ export function registerAssetJobHandlers(): void {
       progress(processed / Math.max(files.length, 1));
     }
     return { imported, skipped };
+  });
+
+  registerJobHandler('hash_asset', async (input) => {
+    const asset = getAssetOrThrow(String(input.assetId));
+    const sha256 = await sha256File(asset.originalPath);
+    const existing = findBySha256(sha256);
+    if (existing && existing.id !== asset.id) {
+      logger.info('Exact duplicate detected after import.', {
+        assetId: asset.id,
+        duplicateOf: existing.id,
+        sha256
+      });
+    }
+    updateAsset(asset.id, { sha256 });
+    return { sha256, duplicateOf: existing && existing.id !== asset.id ? existing.id : undefined };
   });
 
   registerJobHandler('probe_media', async (input) => {

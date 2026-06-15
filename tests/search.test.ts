@@ -48,6 +48,7 @@ describe('searchService', () => {
     });
     addTagToAsset(asset.id, 'reaction');
     expect(searchAssets({ q: 'reaction' })[0].asset.id).toBe(asset.id);
+    expect(searchAssets({ q: 'tag:reaction' })[0].asset.id).toBe(asset.id);
   });
 
   it('kind filter works', () => {
@@ -87,6 +88,6 @@ describe('searchService', () => {
     });
     updateAsset(asset.id, { favorite: true });
     expect(searchAssets({ q: '', favoritesOnly: true })).toHaveLength(1);
+    expect(searchAssets({ q: 'fav:true' })).toHaveLength(1);
   });
 });
-

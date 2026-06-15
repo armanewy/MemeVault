@@ -41,6 +41,7 @@ export interface MemeVaultApi {
     removeTag(input: { assetId: string; tagId: string }): Promise<Asset>;
     copyToClipboard(input: { id: string }): Promise<ClipboardResult>;
     autoPaste(input: { id: string }): Promise<ClipboardResult>;
+    attemptPaste(): Promise<ClipboardResult>;
     revealInFileManager(input: { id: string }): Promise<{ ok: true }>;
     removeFromVault(input: { id: string }): Promise<{ ok: true }>;
     rerunOcr(input: { id: string }): Promise<{ jobId: string }>;
@@ -113,4 +114,3 @@ declare global {
     memevault: MemeVaultApi;
   }
 }
-

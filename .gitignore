@@ -3,6 +3,7 @@ out/
 dist/
 release/
 .vite/
+.memevault-qa-userData-*/
 *.log
 *.traineddata
 .DS_Store

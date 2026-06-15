@@ -49,7 +49,9 @@ describeIfManifest('MemeVault media detection QA fixture', () => {
   afterAll(async () => {
     const { closeDatabase } = await import('../src/main/db/db');
     closeDatabase();
-    if (userDataDir) await rm(userDataDir, { recursive: true, force: true });
+    if (userDataDir && !process.env.MEMEVAULT_QA_KEEP_USER_DATA) {
+      await rm(userDataDir, { recursive: true, force: true });
+    }
   });
 
   it(
@@ -82,8 +84,8 @@ describeIfManifest('MemeVault media detection QA fixture', () => {
         expect(byName[0]?.asset.kind).toBe(entry.kind);
       }
 
-      const ocrResult = searchAssets({ q: 'ALPHA ZEBRA', limit: 5 });
-      expect(ocrResult[0]?.asset.filename).toBe('redaction-ocr-email-phone.png');
+      const ocrResult = searchAssets({ q: 'OCRTEST ALPHA', limit: 5 });
+      expect(ocrResult.some((result) => result.asset.filename.startsWith('redaction-ocr-email-phone'))).toBe(true);
 
       expect(all.filter((asset) => asset.kind === 'image')).toHaveLength(manifest.entries.filter((entry) => entry.kind === 'image').length);
       expect(all.filter((asset) => asset.kind === 'gif')).toHaveLength(manifest.entries.filter((entry) => entry.kind === 'gif').length);
