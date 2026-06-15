@@ -24,7 +24,7 @@ let exitCode = 0;
 
 try {
   run('npm', ['run', 'build']);
-  run('npx', ['electron-builder', builderArg]);
+  run('npx', ['electron-builder', builderArg, '--publish', 'never']);
 } catch (error) {
   exitCode = typeof error.status === 'number' ? error.status : 1;
 } finally {
