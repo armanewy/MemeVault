@@ -14,6 +14,19 @@ vi.mock('electron', () => ({
   }
 }));
 
+vi.mock('node:child_process', () => ({
+  spawn: vi.fn(() => ({
+    stderr: {
+      on: (event: string, callback: (chunk: Buffer) => void) => {
+        if (event === 'data') queueMicrotask(() => callback(Buffer.from('mock ffmpeg failure')));
+      }
+    },
+    on: (event: string, callback: (code: number) => void) => {
+      if (event === 'close') queueMicrotask(() => callback(1));
+    }
+  }))
+}));
+
 describe('thumbnailService', () => {
   beforeEach(async () => {
     userDataDir = await mkdtemp(join(tmpdir(), 'memevault-thumb-test-'));
