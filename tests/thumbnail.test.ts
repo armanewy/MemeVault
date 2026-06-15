@@ -14,20 +14,7 @@ vi.mock('electron', () => ({
   }
 }));
 
-vi.mock('node:child_process', async () => {
-  const { EventEmitter } = await import('node:events');
-  return {
-    spawn: vi.fn(() => {
-      const child = new EventEmitter() as any;
-      child.stderr = new EventEmitter();
-      queueMicrotask(() => {
-        child.stderr.emit('data', Buffer.from('mock ffmpeg failure'));
-        child.emit('close', 1);
-      });
-      return child;
-    })
-  };
-});
+vi.mock('ffmpeg-static', () => ({ default: null }));
 
 describe('thumbnailService', () => {
   beforeEach(async () => {
