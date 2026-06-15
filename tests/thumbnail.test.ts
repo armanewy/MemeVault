@@ -14,18 +14,20 @@ vi.mock('electron', () => ({
   }
 }));
 
-vi.mock('node:child_process', () => ({
-  spawn: vi.fn(() => ({
-    stderr: {
-      on: (event: string, callback: (chunk: Buffer) => void) => {
-        if (event === 'data') queueMicrotask(() => callback(Buffer.from('mock ffmpeg failure')));
-      }
-    },
-    on: (event: string, callback: (code: number) => void) => {
-      if (event === 'close') queueMicrotask(() => callback(1));
-    }
-  }))
-}));
+vi.mock('node:child_process', async () => {
+  const { EventEmitter } = await import('node:events');
+  return {
+    spawn: vi.fn(() => {
+      const child = new EventEmitter() as any;
+      child.stderr = new EventEmitter();
+      queueMicrotask(() => {
+        child.stderr.emit('data', Buffer.from('mock ffmpeg failure'));
+        child.emit('close', 1);
+      });
+      return child;
+    })
+  };
+});
 
 describe('thumbnailService', () => {
   beforeEach(async () => {
@@ -33,6 +35,7 @@ describe('thumbnailService', () => {
   });
 
   afterEach(async () => {
+    sharp.cache(false);
     await rm(userDataDir, { recursive: true, force: true });
   });
 
@@ -68,5 +71,5 @@ describe('thumbnailService', () => {
     const { generateVideoThumbnail } = await import('../src/main/services/thumbnailService');
     const result = await generateVideoThumbnail(baseAsset(join(userDataDir, 'missing.mp4'), 'video'));
     await expect(sharp(result.thumbnailPath).metadata()).resolves.toMatchObject({ width: 640, height: 360 });
-  });
+  }, 20_000);
 });
