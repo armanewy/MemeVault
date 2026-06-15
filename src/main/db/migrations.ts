@@ -134,7 +134,17 @@ export function runMigrations(db: Database.Database): void {
       tags,
       collections
     );
+  `);
 
+  addColumnIfMissing(db, 'assets', 'duplicate_of_asset_id', 'TEXT REFERENCES assets(id)');
+  addColumnIfMissing(
+    db,
+    'assets',
+    'duplicate_status',
+    "TEXT NOT NULL DEFAULT 'unique' CHECK(duplicate_status IN ('unique', 'duplicate'))"
+  );
+
+  db.exec(`
     CREATE INDEX IF NOT EXISTS idx_assets_kind ON assets(kind);
     CREATE INDEX IF NOT EXISTS idx_assets_favorite ON assets(favorite);
     CREATE INDEX IF NOT EXISTS idx_assets_imported_at ON assets(imported_at);
@@ -146,13 +156,4 @@ export function runMigrations(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status);
     CREATE INDEX IF NOT EXISTS idx_jobs_asset ON jobs(asset_id);
   `);
-
-  addColumnIfMissing(db, 'assets', 'duplicate_of_asset_id', 'TEXT REFERENCES assets(id)');
-  addColumnIfMissing(
-    db,
-    'assets',
-    'duplicate_status',
-    "TEXT NOT NULL DEFAULT 'unique' CHECK(duplicate_status IN ('unique', 'duplicate'))"
-  );
-  db.exec('CREATE INDEX IF NOT EXISTS idx_assets_duplicate_status ON assets(duplicate_status);');
 }
